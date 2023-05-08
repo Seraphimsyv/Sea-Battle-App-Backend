@@ -11,11 +11,7 @@ import { Server } from 'socket.io';
 import { WsGameService } from './ws-game.service';
 import {
   Shot,
-  Ship,
-  Playground,
-  Player,
-  GameData,
-  GamesRecord
+  Ship
 } from './ws-game.types';
 
 @WebSocketGateway(
@@ -88,7 +84,7 @@ export class WsGameGateway implements OnGatewayInit {
   }
 
   @SubscribeMessage('playgroundToComplete')
-  handleAddShipComplete(client: Socket, payload: { password: string}) {
+  handleAddShipComplete(client: Socket, payload: { password: string }) {
     this.logger.log('The player has finished setting up the field: ' + client.id);
     this.gameService.completePlayground(client, payload.password);
     const res = this.gameService.checkPlaygrounds(payload.password);

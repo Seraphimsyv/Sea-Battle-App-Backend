@@ -19,9 +19,6 @@ import {
   GameData,
   GamesRecord
 } from './ws-game.types';
-import {
-  TemplatePlayground
-} from './ws-game.constant';
 
 @Injectable()
 export class WsGameService {
