@@ -2,19 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { User } from 'src/entities/users.entity';
-
-type Token = string;
-
-type ValidationData = {
-  username: string,
-  password: string
-};
-
-type RegistrationData = {
-  username: string,
-  login: string,
-  password: string
-};
+import {
+  ValidationDtoData,
+  RegistrationDtoData
+} from './dto';
 
 @Injectable()
 export class AuthService {
@@ -27,22 +18,25 @@ export class AuthService {
    * @param token 
    * @returns 
    */
-  async getUserFromToken( token: Token ) {
+  async getUserFromToken(token: string) {
     const user = this.jwtService.decode(token);
+    
     return user;
   }
   /**
    * 
-   * @param username 
+   * @param login 
    * @param pass 
    * @returns 
    */
-  async validateUser( validateData: ValidationData ): Promise<any> {
-    const user = await this.usersService.findOne(validateData.username);
+  async validateUser(validateData: ValidationDtoData): Promise<any> {
+    const user = await this.usersService.findOne(validateData.login);
     if (user && user.password === validateData.password) {
       const { password, ...result } = user;
+
       return result;
     }
+
     return null;
   }
   /**
@@ -50,8 +44,9 @@ export class AuthService {
    * @param user 
    * @returns 
    */
-  async autorizationUser( user: User ) {
-    const payload = { username: user.username, sub: user.id };
+  async autorizationUser(user: User) {
+    const payload = { login: user.login, sub: user.id };
+
     return {
       access_token: this.jwtService.sign(payload)
     };
@@ -61,7 +56,7 @@ export class AuthService {
    * @param userData 
    * @returns 
    */
-  async registrationUser( userData: RegistrationData ) {
+  async registrationUser(userData: RegistrationDtoData) {
     return this.usersService.createUser(userData);
   }
 }

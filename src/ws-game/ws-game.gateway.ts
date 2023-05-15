@@ -1,4 +1,3 @@
-import { Header } from "@nestjs/common";
 import { 
   WebSocketGateway,
   OnGatewayInit,
@@ -21,32 +20,37 @@ import {
 )
 export class WsGameGateway implements OnGatewayInit {
   private readonly logger: Logger = new Logger('WsGameGateway');
-  private readonly headers = {
-    "Access-Control-Allow-Origin": "*"
-  }
-  
   constructor(
     private readonly gameService: WsGameService,
   ) {}
-
-  @WebSocketServer() 
-  server: Server;
-
+    /**
+     * 
+     * @param server 
+     */
   afterInit(server: any) {
     this.logger.log('WsGameGateway initialized');
   }
-
-  @Header('Access-Control-Allow-Origin', '*')
-  handleConnection(client: Socket, ...args: any[]) {
+  /**
+   * 
+   * @param client 
+   */
+  handleConnection(client: Socket) {
     this.logger.log('Client connected: ' + client.id);
-    this.server.emit('connectResponse', { status: true }, this.headers)
+    client.emit('connectResponse', { status: true })
   }
-
-  handleDisconnect(client: any) {
+  /**
+   * 
+   * @param client 
+   */
+  handleDisconnect(client: Socket) {
     this.logger.log('Client disconnected: ' + client.id);
     this.gameService.delFromGame(client);
   }
-
+  /**
+   * 
+   * @param client 
+   * @param payload 
+   */
   @SubscribeMessage('gameConnection')
   handleGameConnection(client: Socket, payload: { password: string, authToken: string } ) {
     this.logger.log('The client connects to the game: ' + client.id);
@@ -68,7 +72,11 @@ export class WsGameGateway implements OnGatewayInit {
       client.emit('connectionGameStatus', { status: false, msg: 'Max players!' });
     }
   }
-
+  /**
+   * 
+   * @param client 
+   * @param payload 
+   */
   @SubscribeMessage('playgroundAddShip')
   handleAddShip(client: Socket, payload: { password: string, ship: Ship }) {
     this.logger.log('The player adds a ship to the field: ' + client.id);
@@ -82,7 +90,11 @@ export class WsGameGateway implements OnGatewayInit {
       client.emit('addShipResult', true);
     }
   }
-
+  /**
+   * 
+   * @param client 
+   * @param payload 
+   */
   @SubscribeMessage('playgroundToComplete')
   handleAddShipComplete(client: Socket, payload: { password: string }) {
     this.logger.log('The player has finished setting up the field: ' + client.id);
@@ -125,7 +137,11 @@ export class WsGameGateway implements OnGatewayInit {
       })
     }
   }
-
+  /**
+   * 
+   * @param client 
+   * @param payload 
+   */
   @SubscribeMessage('playgroundShot')
   handlerShot(client: Socket, payload: { password: string, shot: Shot }) {
     this.logger.log('' + client.id);

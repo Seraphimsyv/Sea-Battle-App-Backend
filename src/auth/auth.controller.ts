@@ -1,21 +1,20 @@
 import {
   Controller,
-  Request,
   Post,
   Body,
-  UseGuards
 } from '@nestjs/common';
+import { Logger } from '@nestjs/common/services';
 import { AuthService } from './auth.service';
-import { LocalAuthGuard } from 'src/guard/local-auth.guard';
-
-type RegistrationDataDto = {
-  username: string,
-  login: string,
-  password: string
-}
+import { UnauthorizedException } from '@nestjs/common';
+import { 
+  LoginDtoData,
+  RegistrationDtoData
+} from './dto';
 
 @Controller('/api/auth')
 export class AuthController {
+  private readonly logger: Logger = new Logger("AuthController");
+
   constructor(
     private readonly authService: AuthService
   ) {}
@@ -24,18 +23,27 @@ export class AuthController {
    * @param req 
    * @returns 
    */
-  @UseGuards(LocalAuthGuard)
   @Post('log-in')
-  async logIn(@Request() req) {
-    // return req.user;
-    return this.authService.autorizationUser(req.user);
+  async logIn(@Body() req: LoginDtoData) {
+    const user = await this.authService.validateUser(
+      { 
+        login: req.login,
+        password: req.password
+      }
+    )
+
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
+    return this.authService.autorizationUser(user);
   }
   /**
    * 
    * @param registerData 
    */
   @Post('sign-in')
-  async signIn(@Body() registerData: RegistrationDataDto ) {
+  async signIn(@Body() registerData: RegistrationDtoData ) {
     return this.authService.registrationUser( registerData );
   }
 }

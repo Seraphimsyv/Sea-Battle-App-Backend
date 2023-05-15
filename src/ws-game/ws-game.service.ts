@@ -14,9 +14,6 @@ import {
 import {
   Shot,
   Ship,
-  Playground,
-  Player,
-  GameData,
   GamesRecord
 } from './ws-game.types';
 
@@ -190,6 +187,7 @@ export class WsGameService {
       if (sh.x === shot.x && sh.y === shot.y) {
         sh.health -= 1;
         sh.status = EnumShipStatus.DESTROYED;
+        
         return { 
           status: "HIT_DESTROY",
           playerShot: clientInx === 0 ? game.clients[0] : game.clients[1],

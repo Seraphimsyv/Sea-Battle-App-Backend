@@ -5,21 +5,22 @@ import {
   UseGuards
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { JwtAuthGuard } from 'src/guard/jwt-auth.guard';
+import { JwtService } from '@nestjs/jwt';
 
 @Controller('api/account')
 export class UsersController {
   constructor(
-    private readonly usersService: UsersService
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService
   ) {}
   /**
    * 
    * @param req 
    * @returns 
    */
-  @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@Request() req) {
-    return this.usersService.getProfile(req.user.username);
+    const user = this.jwtService.decode(req.headers.authorization.slice(7));
+    return this.usersService.getProfile(user['login']);
   }
 }
