@@ -54,50 +54,61 @@ export class WsGameService {
    */
   addToGame(client: Socket, password: string, authToken: string) : string {
     if (password in this.games) {
+      console.log(this.games)
       if (this.games[password].clients.length === 2) {
+        if (
+          this.games[password].clients[0].client === client ||
+          this.games[password].clients[1]?.client === client
+          ) {
+          return "CONNECTED";
+        }
         this.logger.log('The client tried to enter a full game: ' + client.id);
         
         return "MAX_PLAYERS";
       } else {
-        this.logger.log('Client connected to the game: ' + client.id);
-        this.games[password].clients.push(
-          { 
-            client: client,
-            userData: this.jwtService.decode(authToken),
-            authToken: authToken,
-            playground: {
-              status: EnumPlaygroundStatus.EDITABLE,
-              ships: []
-            }
-          }
-        )
+        if (this.games[password].clients[0].client === client) {
+          return "CONNECTED";
+        } else {
+          this.logger.log('Client connected to the game: ' + client.id);
+          this.games[password].clients.push(
+            { 
+              client: client,
+              userData: this.jwtService.decode(authToken),
+              authToken: authToken,
+              playground: {
+                status: EnumPlaygroundStatus.EDITABLE,
+                ships: []
+              } 
+            } 
+          )  
+          return "CONNECTION_TO_GAME";
+        }
       }
-      
-      return "CONNECTION_TO_GAME";
     } else {
+      const game = this.gameRepository.findOne({ where : { password: password } })
 
-      this.games[password] = {
-        clients: [
-          {
-            client: client,
-            userData: this.jwtService.decode(authToken),
-            authToken: authToken,
-            playground: {
-              status: EnumPlaygroundStatus.EDITABLE,
-              ships: []
+      if (game === null) {
+        return "GAME_ENDED";
+      } else {
+        this.games[password] = {
+          clients: [
+            {
+              client: client,
+              userData: this.jwtService.decode(authToken),
+              authToken: authToken,
+              playground: {
+                status: EnumPlaygroundStatus.EDITABLE,
+                ships: []
+              }
             }
-          }
-        ],
-        status: 0,
-        turn: 0,
-        step: 0
+          ],
+          status: 0,
+          turn: 0,
+          step: 0
+        }
+
+        return "GAME_CREATED";
       }
-
-      return "GAME_CREATED";
-
-      // this.logger.log('The client tried to enter an already finished game: ' + client.id);
-      
-      // return "GAME_ENDED";
     }
   }
   /**
@@ -112,19 +123,19 @@ export class WsGameService {
     const clientInx = client === game.clients[0].client ? 0 : 1;
 
     game.clients[clientInx].playground.ships.forEach(el => {
-      if (ship.x + 5 === el.x) {
+      if (ship.x + 1 === el.x) {
         return 0;
       }
       
-      if (ship.x - 5 === el.x) {
+      if (ship.x - 1 === el.x) {
         return 0;
       }
 
-      if(ship.y + 5 === el.y) {
+      if(ship.y + 1 === el.y) {
         return 0;
       }
 
-      if(ship.y - 5 === el.y) {
+      if(ship.y - 1 === el.y) {
         return 0;
       }
     })

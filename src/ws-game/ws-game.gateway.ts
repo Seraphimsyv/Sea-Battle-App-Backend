@@ -56,6 +56,10 @@ export class WsGameGateway implements OnGatewayInit {
     this.logger.log('The client connects to the game: ' + client.id);
     const res = this.gameService.addToGame(client, payload.password, payload.authToken);
 
+    if (res === "CONNECTED") {
+      client.emit('connectionGameStatus', { status: true, msg: 'Connection alive!' });
+    }
+
     if (res === "GAME_CREATED") {
       client.emit('connectionGameStatus', { status: true, msg: 'Game created and connection succesful!'});
     }

@@ -2,7 +2,6 @@ import {
   Controller,
   Request,
   Get,
-  UseGuards
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtService } from '@nestjs/jwt';
@@ -20,7 +19,7 @@ export class UsersController {
    */
   @Get('profile')
   async getProfile(@Request() req) {
-    const user = this.jwtService.decode(req.headers.authorization.slice(7));
+    const user = this.jwtService.decode(req.headers.authorization);
     return this.usersService.getProfile(user['login']);
   }
 }
