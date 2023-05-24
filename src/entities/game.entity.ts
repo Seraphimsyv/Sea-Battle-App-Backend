@@ -1,12 +1,11 @@
 import {
   Entity,
   Column,
-  JoinTable,
+  JoinColumn,
   CreateDateColumn,
   PrimaryGeneratedColumn,
-  ManyToMany,
+  OneToOne,
 } from "typeorm";
-import { randomBytes } from "crypto";
 import { User } from "./users.entity";
 
 @Entity()
@@ -14,22 +13,24 @@ export class Game {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ unique: false })
   password: string;
-  
-  @Column()
-  steps: number;
 
   @CreateDateColumn()
   createdAt: Date;
 
-  @CreateDateColumn({ nullable: true, default: null })
-  finushAt: Date;
+  @CreateDateColumn()
+  finishAt: Date;
 
-  @Column({ nullable: true })
-  finish_type: 0 | 1; // PLAYER WIN | AUTO WIN
+  @Column({ unique: false })
+  steps: number;
 
-  @ManyToMany(() => User, (user) => user.games)
-  @JoinTable()
-  users: User[];
+  @Column({ unique: false })
+  winner: 0 | 1;
+
+  @Column({ nullable: false, unique: false })
+  firstPlayer: number;
+
+  @Column({ nullable: false, unique: false })
+  secondPlayer: number;
 }

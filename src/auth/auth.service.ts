@@ -3,9 +3,10 @@ import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { User } from 'src/entities/users.entity';
 import {
-  ValidationDtoData,
-  RegistrationDtoData
-} from './dto';
+  Registration,
+  Validation
+} from './types'
+
 
 @Injectable()
 export class AuthService {
@@ -29,7 +30,7 @@ export class AuthService {
    * @param pass 
    * @returns 
    */
-  async validateUser(validateData: ValidationDtoData): Promise<any> {
+  async validateUser(validateData: Validation): Promise<any> {
     const user = await this.usersService.findOne(validateData.login);
     if (user && user.password === validateData.password) {
       const { password, ...result } = user;
@@ -45,7 +46,7 @@ export class AuthService {
    * @returns 
    */
   async autorizationUser(user: User) {
-    const payload = { login: user.login, sub: user.id };
+    const payload = { login: user.login, id: user.id, username: user.username };
 
     return {
       access_token: this.jwtService.sign(payload)
@@ -56,7 +57,7 @@ export class AuthService {
    * @param userData 
    * @returns 
    */
-  async registrationUser(userData: RegistrationDtoData) {
+  async registrationUser(userData: Registration) {
     return this.usersService.createUser(userData);
   }
 }

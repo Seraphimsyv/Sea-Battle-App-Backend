@@ -24,7 +24,4 @@ export class User {
 
   @OneToMany(() => Chat, (chats) => chats.sender)
   chats: Chat[];
-
-  @ManyToMany(() => Game, (game) => game.users)
-  games: Game[];
 }

@@ -13,6 +13,9 @@ export class Chat {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column()
+  gamePassword: string;
+
   @Column({ nullable: false })
   message: string;
 

@@ -1,17 +1,15 @@
 import { 
+  WebSocketServer,
   WebSocketGateway,
   OnGatewayInit,
   SubscribeMessage,
-  WebSocketServer
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
-import { Socket } from 'socket.io-client';
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { WsGameService } from './ws-game.service';
 import {
-  Shot,
-  Ship
-} from './ws-game.types';
+  WebSocketConnectionDto
+} from './dto'
 
 @WebSocketGateway(
   {
@@ -19,14 +17,24 @@ import {
   }
 )
 export class WsGameGateway implements OnGatewayInit {
-  private readonly logger: Logger = new Logger('WsGameGateway');
+  private logger: Logger = new Logger('WsGameGateway');
+  private connectedClients: Map<string, any> = new Map();
+  /**
+   * 
+   * @param gameService 
+   */
   constructor(
     private readonly gameService: WsGameService,
   ) {}
-    /**
-     * 
-     * @param server 
-     */
+  /**
+   * 
+   */
+  @WebSocketServer()
+  server: Server;
+  /**
+   * 
+   * @param server 
+   */
   afterInit(server: any) {
     this.logger.log('WsGameGateway initialized');
   }
@@ -36,123 +44,67 @@ export class WsGameGateway implements OnGatewayInit {
    */
   handleConnection(client: Socket) {
     this.logger.log('Client connected: ' + client.id);
-    client.emit('connectResponse', { status: true })
   }
   /**
    * 
    * @param client 
    */
   handleDisconnect(client: Socket) {
+    clearInterval(this.connectedClients.get(client.id));
+    this.gameService.gameAutoClear();
+    this.connectedClients.delete(client.id);
     this.logger.log('Client disconnected: ' + client.id);
-    this.gameService.delFromGame(client);
   }
   /**
    * 
    * @param client 
    * @param payload 
    */
-  @SubscribeMessage('gameConnection')
-  handleGameConnection(client: Socket, payload: { password: string, authToken: string } ) {
-    this.logger.log('The client connects to the game: ' + client.id);
-    const res = this.gameService.addToGame(client, payload.password, payload.authToken);
+  @SubscribeMessage('game:connect')
+  handleConnectToGame(client: Socket, payload: WebSocketConnectionDto) {
+    const connect = this.gameService.gameConnect({
+      socket: client,
+      password: payload.password,
+      token: payload.token
+    });
 
-    if (res === "CONNECTED") {
-      client.emit('connectionGameStatus', { status: true, msg: 'Connection alive!' });
-    }
+    if (connect) {
+      this.logger.log('Client connected to game: ' + client.id);
 
-    if (res === "GAME_CREATED") {
-      client.emit('connectionGameStatus', { status: true, msg: 'Game created and connection succesful!'});
-    }
-    
-    if (res === "CONNECTION_TO_GAME") {
-      client.emit('connectionGameStatus', { status: true, msg: "Connected!" });
-    }
+      const interval = setInterval(() => {
+        if (!this.gameService.gameCheckExist(payload.password)) {
+          clearInterval(interval);
+          return;
+        }
 
-    if (res === "GAME_ENDED") {
-      client.emit('connectionGameStatus', { status: false, msg: 'Game ended!' });
-    }
+        const playerPoints = this.gameService.gameGetPlayersPoints({
+          password: payload.password, token: payload.token
+        });
+        const points = this.gameService.gameGetShipsPoints({
+          password: payload.password, token: payload.token
+        });
+        const gameTurn = this.gameService.gameGetTurn({
+          password: payload.password, token: payload.token
+        });
+        const gameStatus = this.gameService.gameGetStatus(payload.password);
+        const opponentStatus = this.gameService.getOpponentStatus({
+          password: payload.password, token: payload.token
+        });
+        const messages = this.gameService.getMessages(payload.password);
 
-    if (res === "MAX_PLAYERS") {
-      client.emit('connectionGameStatus', { status: false, msg: 'Max players!' });
-    }
-  }
-  /**
-   * 
-   * @param client 
-   * @param payload 
-   */
-  @SubscribeMessage('playgroundAddShip')
-  handleAddShip(client: Socket, payload: { password: string, ship: Ship }) {
-    this.logger.log('The player adds a ship to the field: ' + client.id);
-    const res = this.gameService.addShip(client, payload.password, payload.ship);
+        if (points) {
+          client.emit('response:game:points', { ...points });
+        }
+        client.emit('response:game:event-turn', { turn: gameTurn });
+        client.emit('response:game:get-status', { ...gameStatus });
+        client.emit('response:player:points', { ...playerPoints });
+        client.emit('response:opponent:get-status', { ...opponentStatus });
+        client.emit('response:messages', { messages: messages });
+      }, 1000);
 
-    if (res === 0) {
-      this.logger.log(`A player tried to add a ship close to another: ${payload.ship}`);
-      client.emit('addShipResult', false);
+      this.connectedClients.set(client.id, interval);
     } else {
-      this.logger.log(`The ship is added to the field: ${payload.ship}`);
-      client.emit('addShipResult', true);
+      client.emit('response:error:connect');
     }
-  }
-  /**
-   * 
-   * @param client 
-   * @param payload 
-   */
-  @SubscribeMessage('playgroundToComplete')
-  handleAddShipComplete(client: Socket, payload: { password: string }) {
-    this.logger.log('The player has finished setting up the field: ' + client.id);
-    this.gameService.completePlayground(client, payload.password);
-    const res = this.gameService.checkPlaygrounds(payload.password);
-
-    if (res === 0) {
-      this.gameService.games[payload.password].clients.forEach(cl => {
-        cl.client.emit('PlaygroundStatus', { status: true });
-      })
-    }
-
-    if (res === 1) {
-      this.gameService.games[payload.password].clients.forEach(cl => {
-        cl.client.emit('PlaygroundStatus', { status: false, msg: "Playground of second player not ready" });
-      })
-    }
-
-    if (res === 2) {
-      this.gameService.games[payload.password].clients.forEach(cl => {
-        cl.client.emit('PlaygroundStatus', { status: false, msg: "Playground of first player not ready" });
-      })
-    }
-
-    if (res === 3) {
-      this.gameService.games[payload.password].clients.forEach(cl => {
-        cl.client.emit('PlaygroundStatus', { status: false, msg: "Nobody players not ready" });
-      })
-    }
-
-    if (res === 4) {
-      this.gameService.games[payload.password].clients.forEach(cl => {
-        cl.client.emit('PlaygroundStatus', { status: false, msg: "Second player not connected!" });
-      })
-    }
-
-    if (res === 5) {
-      this.gameService.games[payload.password].clients.forEach(cl => {
-        cl.client.emit('PlaygroundStatus', { status: false, msg: "Somethins wrong" });
-      })
-    }
-  }
-  /**
-   * 
-   * @param client 
-   * @param payload 
-   */
-  @SubscribeMessage('playgroundShot')
-  handlerShot(client: Socket, payload: { password: string, shot: Shot }) {
-    this.logger.log('' + client.id);
-    const res = this.gameService.shotShip(client, payload.password, payload.shot);
-
-    this.gameService.games[payload.password].clients.forEach(cl => {
-      cl.client.emit('shotResult', res);
-    })
   }
 }

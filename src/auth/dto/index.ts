@@ -1,9 +1,10 @@
-import { RegistrationDtoData } from "./register.dto";
-import { ValidationDtoData } from "./validation.dto";
-import { LoginDtoData } from "./login.dto";
+export type LoginDtoData = {
+  login: string,
+  password: string
+}
 
-export type {
-  LoginDtoData,
-  ValidationDtoData,
-  RegistrationDtoData
+export type RegistrationDtoData = {
+  username: string,
+  login: string,
+  password: string
 }
