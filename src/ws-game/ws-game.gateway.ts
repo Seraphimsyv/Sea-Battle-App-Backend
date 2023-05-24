@@ -10,6 +10,7 @@ import { WsGameService } from './ws-game.service';
 import {
   WebSocketConnectionDto
 } from './dto'
+import { EnumGameStatus } from './enum';
 
 @WebSocketGateway(
   {
@@ -18,7 +19,8 @@ import {
 )
 export class WsGameGateway implements OnGatewayInit {
   private logger: Logger = new Logger('WsGameGateway');
-  private connectedClients: Map<string, any> = new Map();
+  private connectedGameClients: Map<string, NodeJS.Timer> = new Map();
+  private connectedChatClients: Map<string, NodeJS.Timer> = new Map();
   /**
    * 
    * @param gameService 
@@ -50,9 +52,11 @@ export class WsGameGateway implements OnGatewayInit {
    * @param client 
    */
   handleDisconnect(client: Socket) {
-    clearInterval(this.connectedClients.get(client.id));
-    this.gameService.gameAutoClear();
-    this.connectedClients.delete(client.id);
+    clearInterval(this.connectedGameClients.get(client.id));
+    clearInterval(this.connectedChatClients.get(client.id));
+    this.gameService.gamePlayerLeave(client);
+    this.connectedGameClients.delete(client.id);
+    this.connectedChatClients.delete(client.id);
     this.logger.log('Client disconnected: ' + client.id);
   }
   /**
@@ -71,12 +75,12 @@ export class WsGameGateway implements OnGatewayInit {
     if (connect) {
       this.logger.log('Client connected to game: ' + client.id);
 
-      const interval = setInterval(() => {
-        if (!this.gameService.gameCheckExist(payload.password)) {
-          clearInterval(interval);
-          return;
-        }
+      const intervalChat = setInterval(() => {
+        const messages = this.gameService.getMessages(payload.password); 
+        client.emit('response:messages', { messages: messages });
+      }, 1000)
 
+      const intervalGame = setInterval(() => {
         const playerPoints = this.gameService.gameGetPlayersPoints({
           password: payload.password, token: payload.token
         });
@@ -90,7 +94,6 @@ export class WsGameGateway implements OnGatewayInit {
         const opponentStatus = this.gameService.getOpponentStatus({
           password: payload.password, token: payload.token
         });
-        const messages = this.gameService.getMessages(payload.password);
 
         if (points) {
           client.emit('response:game:points', { ...points });
@@ -99,10 +102,15 @@ export class WsGameGateway implements OnGatewayInit {
         client.emit('response:game:get-status', { ...gameStatus });
         client.emit('response:player:points', { ...playerPoints });
         client.emit('response:opponent:get-status', { ...opponentStatus });
-        client.emit('response:messages', { messages: messages });
+
+        if (gameStatus.status === EnumGameStatus.FINISHED) {
+          clearInterval(intervalGame);
+        }
+
       }, 1000);
 
-      this.connectedClients.set(client.id, interval);
+      this.connectedGameClients.set(client.id, intervalGame);
+      this.connectedChatClients.set(client.id, intervalChat);
     } else {
       client.emit('response:error:connect');
     }

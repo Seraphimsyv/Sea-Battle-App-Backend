@@ -46,8 +46,7 @@ export type GameData = {
   turn: 0 | 1,
   step: number,
   saved: boolean,
-  createdAt: Date,
-  messages: Message[]
+  createdAt: Date
 }
 
 export type GameRecord = Record<Password, GameData>;

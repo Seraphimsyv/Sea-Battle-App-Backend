@@ -3,8 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
+import { Socket } from 'socket.io';
 import { Game } from 'src/entities/game.entity';
-import { GlobalGameProvider } from './ws-game.global';
+import { GlobalChatProvider, GlobalGameProvider } from './ws-game.global';
 import { UsersService } from 'src/users/users.service';
 import {
   EnumGameStatus, EnumOpponentStatus, EnumPlayerTurnStatus
@@ -19,22 +20,16 @@ import {
   GameAuthAndPoint,
   Playground
 } from './types'
-import { boolean } from '@hapi/joi';
 
 @Injectable()
 export class WsGameService {
   private logger: Logger = new Logger('WsGameService');
-  /**
-   * 
-   * @param gameProvider 
-   * @param gameRepository 
-   * @param usersService 
-   * @param jwtService 
-   */
+
   constructor(
     @InjectRepository(Game)
     private gameRepository: Repository<Game>,
     private gameProvider: GlobalGameProvider,
+    private chatProvider: GlobalChatProvider,
     private usersService: UsersService,
     private jwtService: JwtService
   ) {}
@@ -58,6 +53,7 @@ export class WsGameService {
     if (password in this.gameProvider.data) {
       return false;
     } else {
+      this.chatProvider.data[password] = [];
       this.gameProvider.data[password] = {
         players: {},
         status: EnumGameStatus.PREPARE,
@@ -65,21 +61,33 @@ export class WsGameService {
         step: 0,
         saved: false,
         createdAt: new Date(),
-        messages: []
       };
       return true;
     }
   }
   /**
    * 
+   * @param data 
    */
-  gameAutoClear() {
-    const games = this.gameProvider.data;
+  async gamePlayerLeave(socket: Socket) {
+    const data = {
+      password: '',
+      token: ''
+    };
 
-    for (const pass in games) {
-      if (games[pass].status === EnumGameStatus.FINISHED) {
-        delete this.gameProvider.data[pass];
-      }
+    Object.keys(this.gameProvider.data).forEach(pass => {
+      Object.keys(this.gameProvider.data[pass].players).forEach(token => {
+        if (socket === this.gameProvider.data[pass].players[token].socket) {
+          data.password = pass;
+          data.token = token;
+        }
+      })
+    })
+
+    delete this.gameProvider.data[data.password].players[data.token];
+
+    if (Object.keys(this.gameProvider.data[data.password].players).length === 0) {
+      delete this.gameProvider.data[data.password];
     }
   }
   /**
@@ -140,8 +148,10 @@ export class WsGameService {
   gameGetPlayersPoints(data: GameAuth) {
     const game = this.gameProvider.data[data.password];
 
-    if (this.getOpponentStatus(data).status === EnumOpponentStatus.NOT_CONNECTED) return;
+    if (game.status === EnumGameStatus.PREPARE) return;
 
+    if (Object.keys(game.players).length !== 2) return;
+    
     const currentPlayer = game.players[data.token];
     const secondPlayer = game.players[
       Object.keys(game.players)[0] !== data.token
@@ -164,6 +174,8 @@ export class WsGameService {
     const game = this.gameProvider.data[data.password];
 
     if (game.status === EnumGameStatus.PREPARE) return;
+
+    if (Object.keys(game.players).length !== 2) return;
 
     const currentPlayer = game.players[data.token];
     const secondPlayer = game.players[
@@ -192,6 +204,11 @@ export class WsGameService {
    */
   gameGetTurn(data: GameAuth) {
     const game = this.gameProvider.data[data.password];
+
+    if (game.status === EnumGameStatus.PREPARE) return;
+
+    if (Object.keys(game.players).length !== 2) return;
+
     const clientsList = Object.keys(game.players);
 
     if (clientsList[game.turn] === data.token) {
@@ -212,6 +229,10 @@ export class WsGameService {
     winner?: string
   } {
     const game = this.gameProvider.data[password];
+
+    if (Object.keys(game.players).length !== 2) {
+      return { status: EnumGameStatus.ERROR };
+    }
     
     if (game.status === 0) {
       return { status: EnumGameStatus.PREPARE };
@@ -266,6 +287,10 @@ export class WsGameService {
    */
   getOpponentStatus(data: GameAuth) {
     const game = this.gameProvider.data[data.password];
+
+    if (game.status === EnumGameStatus.PREPARE) return;
+
+    if (Object.keys(game.players).length !== 2) return;
 
     for (const key in game.players) {
       if (key === data.token) continue;
@@ -399,11 +424,16 @@ export class WsGameService {
    * @param data 
    */
   saveMessage(data: { password: string, message: Message}) {
-    const game = this.gameProvider.data[data.password];
-    game.messages.push(data.message);
+    const chat = this.chatProvider.data[data.password];
+    chat.push(data.message);
   }
+  /**
+   * 
+   * @param password 
+   * @returns 
+   */
   getMessages(password: string) {
-    const game = this.gameProvider.data[password];
-    return game.messages;
+    const chat = this.chatProvider.data[password];
+    return chat;
   }
 }

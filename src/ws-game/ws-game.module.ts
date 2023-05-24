@@ -6,7 +6,7 @@ import { WsGameController } from './ws-game.controllers';
 import { WsGameGateway } from './ws-game.gateway';
 import { WsGameService } from './ws-game.service';
 import { Game } from 'src/entities/game.entity';
-import { GlobalGameProvider } from './ws-game.global';
+import { GlobalGameProvider, GlobalChatProvider } from './ws-game.global';
 import { jwtConstants } from 'src/constants';
 
 @Module({
@@ -19,7 +19,7 @@ import { jwtConstants } from 'src/constants';
     UsersModule,
   ],
   controllers: [WsGameController],
-  providers: [WsGameService, WsGameGateway, GlobalGameProvider],
+  providers: [WsGameService, WsGameGateway, GlobalGameProvider, GlobalChatProvider],
   exports: [GlobalGameProvider]
 })
 export class WsGameModule {}
