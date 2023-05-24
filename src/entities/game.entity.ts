@@ -1,12 +1,9 @@
 import {
   Entity,
   Column,
-  JoinColumn,
   CreateDateColumn,
   PrimaryGeneratedColumn,
-  OneToOne,
 } from "typeorm";
-import { User } from "./users.entity";
 
 @Entity()
 export class Game {
@@ -32,5 +29,11 @@ export class Game {
   firstPlayer: number;
 
   @Column({ nullable: false, unique: false })
+  firstPlayerPoints: number;
+
+  @Column({ nullable: false, unique: false })
   secondPlayer: number;
+
+  @Column({ nullable: false, unique: false })
+  secondPlayerPoints: number;
 }

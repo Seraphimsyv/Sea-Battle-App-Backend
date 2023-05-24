@@ -18,8 +18,10 @@ import {
   GameAuth,
   GameConnection,
   GameAuthAndPoint,
-  Playground
+  Playground,
+  Token
 } from './types'
+import { User } from 'src/entities/users.entity';
 
 @Injectable()
 export class WsGameService {
@@ -252,7 +254,9 @@ export class WsGameService {
 
         gameSave.password = password;
         gameSave.firstPlayer = game.players[firstPlayerToken].userData.id;
+        gameSave.firstPlayerPoints = game.players[firstPlayerToken].points;
         gameSave.secondPlayer = game.players[secondPlayerToken].userData.id;
+        gameSave.secondPlayerPoints = game.players[secondPlayerToken].points
         gameSave.createdAt = game.createdAt;
         gameSave.finishAt = new Date();
         gameSave.steps = game.step;
@@ -435,5 +439,77 @@ export class WsGameService {
   getMessages(password: string) {
     const chat = this.chatProvider.data[password];
     return chat;
+  }
+  /**
+   * 
+   * @param gameId 
+   */
+  async loadPlayerHistory(gameId: number) {
+    const game = await this.gameRepository.findOne({ where: { id: gameId }});
+    const winnerId = game.winner === 0 ? game.firstPlayer : game.secondPlayer;
+    const loseId = game.winner === 0 ? game.secondPlayer : game.firstPlayer;
+    const winnerPlayer: User = await this.usersService.findOne(winnerId);
+    const loserPlayer: User = await this.usersService.findOne(loseId);
+
+    return {
+      winnerPlayer: winnerPlayer.username,
+      loserPlayer: loserPlayer.username,
+      winnerPoints: game.winner === 0 ? game.firstPlayerPoints : game.secondPlayerPoints,
+      loserPoints: game.winner === 0 ? game.secondPlayerPoints : game.firstPlayerPoints,
+      steps: game.steps,
+      createdAt: game.createdAt,
+      finishedAt: game.finishAt,
+    }
+  }
+  /**
+   * 
+   * @param token 
+   */
+  async loadPlayerStatistic(token: Token) {
+    const data = {
+      playerStatistic: {
+        total: 0,
+        points: 0,
+        win: 0,
+        lose: 0
+      },
+      history: []
+    }
+
+    const user = await this.usersService.findOne(
+      this.jwtService.decode(token)['login']
+    );
+
+    const games = await this.gameRepository
+      .createQueryBuilder('game')
+      .where('game.firstPlayer = :playerId OR game.secondPlayer = :playerId', { playerId: user.id })
+      .getMany();
+
+    for (let i = 0; i < games.length; i++) {
+      data.playerStatistic.total += 1;
+      data.history.push(
+        await this.loadPlayerHistory(games[i].id)
+      )
+      
+      if (games[i].winner === 0) {
+        if (games[i].firstPlayer === user.id) {
+          data.playerStatistic.win += 1;
+          data.playerStatistic.points += games[i].firstPlayerPoints;
+        } else {
+          data.playerStatistic.lose += 1;
+          data.playerStatistic.points += games[i].firstPlayerPoints;
+        }
+      } else {
+        if (games[i].secondPlayer === user.id) {
+          data.playerStatistic.win += 1;
+          data.playerStatistic.points += games[i].firstPlayer;
+        } else {
+          data.playerStatistic.win += 1;
+          data.playerStatistic.points += games[i].secondPlayerPoints;;
+        }
+      }
+    }
+    
+    return data;
   }
 }

@@ -2,11 +2,7 @@ import {
   Entity,
   Column,
   PrimaryGeneratedColumn,
-  OneToMany,
-  ManyToMany
 } from "typeorm";
-import { Chat } from "./chats.entity";
-import { Game } from "./game.entity";
 
 @Entity()
 export class User {
@@ -21,7 +17,4 @@ export class User {
 
   @Column({ nullable: false })
   password: string;
-
-  @OneToMany(() => Chat, (chats) => chats.sender)
-  chats: Chat[];
 }

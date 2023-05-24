@@ -125,4 +125,9 @@ export class WsGameController {
       throw new UnauthorizedException();
     }
   }
+  @Post('statistic')
+  async loadStatistic(@Body() req: { token: string }) {
+    this.logger.log('User load statistic: ' + req.token);
+    return await this.gameService.loadPlayerStatistic(req.token);
+  }
 }

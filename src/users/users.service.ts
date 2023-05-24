@@ -18,10 +18,19 @@ export class UsersService {
    * @param username 
    * @returns 
    */
-  async findOne(login: Login): Promise<User | undefined> {
-    const user = await this.usersRepository.findOne({ where: { login: login }});
+  async findOne(input: number);
+  async findOne(input: string);
+  async findOne(input: Login | number): Promise<User | undefined> {
+    if (typeof input === 'number') {
+      const user = await this.usersRepository.findOne({ where: { id: input }});
+
+      return user;
+    }
+    if (typeof input === 'string') {
+      const user = await this.usersRepository.findOne({ where: { login: input }});
     
-    return user;
+      return user;
+    }
   }
   /**
    * 
