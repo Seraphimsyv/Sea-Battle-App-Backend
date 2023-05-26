@@ -148,6 +148,8 @@ export class WsGameService {
    * @returns 
    */
   gameGetPlayersPoints(data: GameAuth) {
+    if (data.password !in this.gameProvider) return;
+    
     const game = this.gameProvider.data[data.password];
 
     if (game.status === EnumGameStatus.PREPARE) return;
@@ -497,14 +499,14 @@ export class WsGameService {
           data.playerStatistic.points += games[i].firstPlayerPoints;
         } else {
           data.playerStatistic.lose += 1;
-          data.playerStatistic.points += games[i].firstPlayerPoints;
+          data.playerStatistic.points += games[i].secondPlayerPoints;
         }
       } else {
         if (games[i].secondPlayer === user.id) {
           data.playerStatistic.win += 1;
-          data.playerStatistic.points += games[i].firstPlayer;
+          data.playerStatistic.points += games[i].firstPlayerPoints;
         } else {
-          data.playerStatistic.win += 1;
+          data.playerStatistic.lose += 1;
           data.playerStatistic.points += games[i].secondPlayerPoints;;
         }
       }
