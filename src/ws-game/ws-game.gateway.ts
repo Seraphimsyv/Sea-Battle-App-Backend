@@ -1,14 +1,13 @@
 import { 
-  WebSocketServer,
   WebSocketGateway,
   OnGatewayInit,
   SubscribeMessage,
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
-import { Server, Socket } from 'socket.io';
+import { Socket } from 'socket.io';
 import { WsGameService } from './ws-game.service';
 import {
-  WebSocketConnectionDto
+  GameAuthDtoData
 } from './dto'
 import { EnumGameStatus } from './enum';
 
@@ -21,34 +20,25 @@ export class WsGameGateway implements OnGatewayInit {
   private logger: Logger = new Logger('WsGameGateway');
   private connectedGameClients: Map<string, NodeJS.Timer> = new Map();
   private connectedChatClients: Map<string, NodeJS.Timer> = new Map();
-  /**
-   * 
-   * @param gameService 
-   */
+
   constructor(
-    private readonly gameService: WsGameService,
+    private gameService: WsGameService,
   ) {}
   /**
-   * 
-   */
-  @WebSocketServer()
-  server: Server;
-  /**
-   * 
-   * @param server 
+   * Socket initialization
    */
   afterInit(server: any) {
     this.logger.log('WsGameGateway initialized');
   }
   /**
-   * 
+   * Client socket connections
    * @param client 
    */
   handleConnection(client: Socket) {
     this.logger.log('Client connected: ' + client.id);
   }
   /**
-   * 
+   * Disconnect client from socket
    * @param client 
    */
   handleDisconnect(client: Socket) {
@@ -60,12 +50,12 @@ export class WsGameGateway implements OnGatewayInit {
     this.logger.log('Client disconnected: ' + client.id);
   }
   /**
-   * 
+   * Subscribing a client to a game socket
    * @param client 
    * @param payload 
    */
   @SubscribeMessage('game:connect')
-  handleConnectToGame(client: Socket, payload: WebSocketConnectionDto) {
+  handleConnectToGame(client: Socket, payload: GameAuthDtoData) {
     const connect = this.gameService.gameConnect({
       socket: client,
       password: payload.password,
@@ -81,27 +71,31 @@ export class WsGameGateway implements OnGatewayInit {
       }, 1000)
 
       const intervalGame = setInterval(() => {
-        const playerPoints = this.gameService.gameGetPlayersPoints({
-          password: payload.password, token: payload.token
-        });
-        const points = this.gameService.gameGetShipsPoints({
-          password: payload.password, token: payload.token
-        });
-        const gameTurn = this.gameService.gameGetTurn({
-          password: payload.password, token: payload.token
-        });
         const gameStatus = this.gameService.gameGetStatus(payload.password);
-        const opponentStatus = this.gameService.getOpponentStatus({
-          password: payload.password, token: payload.token
-        });
 
-        if (points) {
-          client.emit('response:game:points', { ...points });
+        if (gameStatus.status !== false) {
+          const playerPoints = this.gameService.gameGetPlayersPoints({
+            password: payload.password, token: payload.token
+          });
+          const points = this.gameService.gameGetShipsPoints({
+            password: payload.password, token: payload.token
+          });
+          const gameTurn = this.gameService.gameGetTurn({
+            password: payload.password, token: payload.token
+          });
+          const opponentStatus = this.gameService.getOpponentStatus({
+            password: payload.password, token: payload.token
+          });
+
+          client.emit('response:game:event-turn', { turn: gameTurn });
+          client.emit('response:game:get-status', { ...gameStatus });
+          client.emit('response:player:points', { ...playerPoints });
+          client.emit('response:opponent:get-status', { ...opponentStatus });
+
+          if (points) client.emit('response:game:points', { ...points });
+        } else {
+          clearInterval(intervalGame);
         }
-        client.emit('response:game:event-turn', { turn: gameTurn });
-        client.emit('response:game:get-status', { ...gameStatus });
-        client.emit('response:player:points', { ...playerPoints });
-        client.emit('response:opponent:get-status', { ...opponentStatus });
 
         if (gameStatus.status === EnumGameStatus.FINISHED) {
           clearInterval(intervalGame);

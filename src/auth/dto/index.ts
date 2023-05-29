@@ -1,10 +1,25 @@
-export type LoginDtoData = {
-  login: string,
-  password: string
+import { IsString, IsNotEmpty} from 'class-validator';
+
+export class LoginDtoData {
+  @IsString()
+  @IsNotEmpty()
+  login: string;
+
+  @IsString()
+  @IsNotEmpty()
+  password: string;
 }
 
-export type RegistrationDtoData = {
-  username: string,
-  login: string,
-  password: string
+export class RegistrationDtoData {
+  @IsString()
+  @IsNotEmpty()
+  username: string;
+  
+  @IsString()
+  @IsNotEmpty()
+  login: string;
+  
+  @IsString()
+  @IsNotEmpty()
+  password: string;
 }

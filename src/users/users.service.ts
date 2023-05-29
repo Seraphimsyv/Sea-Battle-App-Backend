@@ -14,7 +14,7 @@ export class UsersService {
     private readonly usersRepository: Repository<User>
   ) {}
   /**
-   * 
+   * Searching for a user in the database
    * @param username 
    * @returns 
    */
@@ -33,7 +33,7 @@ export class UsersService {
     }
   }
   /**
-   * 
+   * User creation
    * @param userData 
    * @returns 
    */
@@ -44,7 +44,7 @@ export class UsersService {
     return newUser;
   }
   /**
-   * 
+   * Getting a user profile
    * @param username 
    * @returns 
    */

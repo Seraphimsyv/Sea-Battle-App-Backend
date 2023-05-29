@@ -1,14 +1,20 @@
+import { IsString, IsNotEmpty, IsObject } from 'class-validator';
 import {
   Point
 } from '../types';
 
-export type GameAuthDtoData = {
-  token: string,
-  password: string
+export class GameAuthDtoData {
+  @IsString()
+  @IsNotEmpty()
+  token: string;
+
+  @IsString()
+  @IsNotEmpty()
+  password: string;
 };
 
-export type GameShipDtoData = GameAuthDtoData & {
-  point: Point
+export class GameShipDtoData extends GameAuthDtoData {
+  @IsObject()
+  @IsNotEmpty()
+  point: Point;
 };
-
-export type WebSocketConnectionDto = GameAuthDtoData;

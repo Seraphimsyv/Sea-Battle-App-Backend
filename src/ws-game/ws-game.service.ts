@@ -36,7 +36,7 @@ export class WsGameService {
     private jwtService: JwtService
   ) {}
   /**
-   * 
+   * Checking if the game exists
    * @param password 
    * @returns 
    */
@@ -48,7 +48,7 @@ export class WsGameService {
     }
   }
   /**
-   * 
+   * Creating a game
    * @param data 
    */
   gameCreate(password: Password) {
@@ -68,7 +68,7 @@ export class WsGameService {
     }
   }
   /**
-   * 
+   * User logout
    * @param data 
    */
   async gamePlayerLeave(socket: Socket) {
@@ -93,7 +93,7 @@ export class WsGameService {
     }
   }
   /**
-   * 
+   * User connections to the game
    * @param client 
    * @param password 
    * @param authToken 
@@ -143,290 +143,320 @@ export class WsGameService {
     }
   }
   /**
-   * 
+   * Getting User Points
    * @param data 
    * @returns 
    */
   gameGetPlayersPoints(data: GameAuth) {
-    if (data.password !in this.gameProvider) return;
-    
-    const game = this.gameProvider.data[data.password];
+    if (data.password in this.gameProvider.data) {
+      const game = this.gameProvider.data[data.password];
 
-    if (game.status === EnumGameStatus.PREPARE) return;
+      if (game.status === EnumGameStatus.PREPARE) return;
 
-    if (Object.keys(game.players).length !== 2) return;
+      if (Object.keys(game.players).length !== 2) return;
     
-    const currentPlayer = game.players[data.token];
-    const secondPlayer = game.players[
-      Object.keys(game.players)[0] !== data.token
-      ? Object.keys(game.players)[0]
-      : Object.keys(game.players)[1]
-    ];
+      const currentPlayer = game.players[data.token];
+      const secondPlayer = game.players[
+        Object.keys(game.players)[0] !== data.token
+        ? Object.keys(game.players)[0]
+        : Object.keys(game.players)[1]
+      ];
     
-    return {
-      player: currentPlayer.points,
-      opponent: secondPlayer.points
+      return {
+        player: currentPlayer.points,
+        opponent: secondPlayer.points
+      }
+    } else {
+      return false;
     }
   }
   /**
-   * 
+   * Getting the location of ship points, missed shots, and allowed user ships
    * @param password 
    * @param token 
    * @returns 
    */
   gameGetShipsPoints(data: GameAuth) {
-    const game = this.gameProvider.data[data.password];
+    if (data.password in this.gameProvider.data) {
+      const game = this.gameProvider.data[data.password];
 
-    if (game.status === EnumGameStatus.PREPARE) return;
+      if (game.status === EnumGameStatus.PREPARE) return;
 
-    if (Object.keys(game.players).length !== 2) return;
+      if (Object.keys(game.players).length !== 2) return;
 
-    const currentPlayer = game.players[data.token];
-    const secondPlayer = game.players[
-      Object.keys(game.players)[0] !== data.token
-      ? Object.keys(game.players)[0]
-      : Object.keys(game.players)[1]
-    ]
+      const currentPlayer = game.players[data.token];
+      const secondPlayer = game.players[
+        Object.keys(game.players)[0] !== data.token
+        ? Object.keys(game.players)[0]
+        : Object.keys(game.players)[1]
+      ]
 
-    return {
-      player: {
-        shipsList: currentPlayer.playground.ships.filter(ship => ship.status !== 0),
-        missedList: currentPlayer.playground.missed,
-        destroyedList: currentPlayer.playground.ships.filter(ship => ship.status === 0)
-      },
-      opponent: {
-        shipList: secondPlayer.playground.ships.filter(ship => ship.status !== 0),
-        missedList: secondPlayer.playground.missed,
-        destroyedList: secondPlayer.playground.ships.filter(ship => ship.status === 0)
+      return {
+        player: {
+          shipsList: currentPlayer.playground.ships.filter(ship => ship.status !== 0),
+          missedList: currentPlayer.playground.missed,
+          destroyedList: currentPlayer.playground.ships.filter(ship => ship.status === 0)
+        },
+        opponent: {
+          shipList: secondPlayer.playground.ships.filter(ship => ship.status !== 0),
+          missedList: secondPlayer.playground.missed,
+          destroyedList: secondPlayer.playground.ships.filter(ship => ship.status === 0)
+        }
       }
+    } else {
+      return false;
     }
   }
   /**
-   * 
+   * Getting a turn in a game
    * @param password 
    * @returns 
    */
   gameGetTurn(data: GameAuth) {
-    const game = this.gameProvider.data[data.password];
+    if (data.password in this.gameProvider.data) {
+      const game = this.gameProvider.data[data.password];
 
-    if (game.status === EnumGameStatus.PREPARE) return;
+      if (game.status === EnumGameStatus.PREPARE) return;
 
-    if (Object.keys(game.players).length !== 2) return;
+      if (Object.keys(game.players).length !== 2) return;
 
-    const clientsList = Object.keys(game.players);
+      const clientsList = Object.keys(game.players);
 
-    if (clientsList[game.turn] === data.token) {
-      return EnumPlayerTurnStatus.PlayerTurn;
+      if (clientsList[game.turn] === data.token) {
+        return EnumPlayerTurnStatus.PlayerTurn;
+      } else {
+        return EnumPlayerTurnStatus.OpponentTurn;
+      }
     } else {
-      return EnumPlayerTurnStatus.OpponentTurn;
+      return false;
     }
   }
   /**
-   * 
+   * Getting game status
    * @param password 
    * @returns 
    */
   gameGetStatus(password: Password) : {
-    status: number,
+    status: number | false,
     step?: number,
     turn?: number,
     winner?: string
   } {
-    const game = this.gameProvider.data[password];
+    if (password in this.gameProvider.data) {
+      const game = this.gameProvider.data[password];
 
-    if (Object.keys(game.players).length !== 2) {
-      return { status: EnumGameStatus.ERROR };
-    }
+      if (Object.keys(game.players).length !== 2) {
+        return { status: EnumGameStatus.ERROR };
+      }
     
-    if (game.status === 0) {
-      return { status: EnumGameStatus.PREPARE };
-    }
-
-    if (game.status === 1) {
-      return { status: EnumGameStatus.PROCESSING, turn: game.turn, step: game.step };
-    }
-
-    if (game.status === 2) {
-      const firstPlayerToken = Object.keys(game.players)[0];
-      const secondPlayerToken = Object.keys(game.players)[1];
-      
-      if (game.saved === false) {
-        game.saved = true;
-        const gameSave : Game = new Game();
-
-        gameSave.password = password;
-        gameSave.firstPlayer = game.players[firstPlayerToken].userData.id;
-        gameSave.firstPlayerPoints = game.players[firstPlayerToken].points;
-        gameSave.secondPlayer = game.players[secondPlayerToken].userData.id;
-        gameSave.secondPlayerPoints = game.players[secondPlayerToken].points
-        gameSave.createdAt = game.createdAt;
-        gameSave.finishAt = new Date();
-        gameSave.steps = game.step;
-
-        if (game.players[firstPlayerToken].points > game.players[secondPlayerToken].points) {
-          gameSave.winner = 0;
-        } else {
-          gameSave.winner = 1;
-        }
-
-        this.gameRepository.save(gameSave);
+      if (game.status === 0) {
+        return { status: EnumGameStatus.PREPARE };
       }
 
-      const winner = game.players[firstPlayerToken].points > game.players[secondPlayerToken].points
-          ? game.players[firstPlayerToken].userData.username
-          : game.players[secondPlayerToken].userData.username;
+      if (game.status === 1) {
+        return { status: EnumGameStatus.PROCESSING, turn: game.turn, step: game.step };
+      }
 
-      return { 
-        status: EnumGameStatus.FINISHED,
-        step: game.step,
-        winner: winner,
-      };
+      if (game.status === 2) {
+        const firstPlayerToken = Object.keys(game.players)[0];
+        const secondPlayerToken = Object.keys(game.players)[1];
+        
+        if (game.saved === false) {
+          game.saved = true;
+          const gameSave : Game = new Game();
+
+          gameSave.password = password;
+          gameSave.firstPlayer = game.players[firstPlayerToken].userData.id;
+          gameSave.firstPlayerPoints = game.players[firstPlayerToken].points;
+          gameSave.secondPlayer = game.players[secondPlayerToken].userData.id;
+          gameSave.secondPlayerPoints = game.players[secondPlayerToken].points
+          gameSave.createdAt = game.createdAt;
+          gameSave.finishAt = new Date();
+          gameSave.steps = game.step;
+
+          if (game.players[firstPlayerToken].points > game.players[secondPlayerToken].points) {
+            gameSave.winner = 0;
+          } else {
+            gameSave.winner = 1;
+          }
+
+          this.gameRepository.save(gameSave);
+        }
+
+        const winner = game.players[firstPlayerToken].points > game.players[secondPlayerToken].points
+            ? game.players[firstPlayerToken].userData.username
+            : game.players[secondPlayerToken].userData.username;
+
+        return { 
+          status: EnumGameStatus.FINISHED,
+          step: game.step,
+          winner: winner,
+        };
+      }
+
+      return { status: EnumGameStatus.ERROR };
+    } else {
+      return { status: false };
     }
-
-    return { status: EnumGameStatus.ERROR };
   }
   /**
-   * 
+   * Obtaining Opponent Status
    * @param password 
    * @param token 
    * @returns 
    */
   getOpponentStatus(data: GameAuth) {
-    const game = this.gameProvider.data[data.password];
+    if (data.password in this.gameProvider.data) {
+      const game = this.gameProvider.data[data.password];
 
-    if (game.status === EnumGameStatus.PREPARE) return;
+      if (game.status === EnumGameStatus.PREPARE) return;
 
-    if (Object.keys(game.players).length !== 2) return;
+      if (Object.keys(game.players).length !== 2) return;
 
-    for (const key in game.players) {
-      if (key === data.token) continue;
+      for (const key in game.players) {
+        if (key === data.token) continue;
 
-      if (game.status === EnumGameStatus.PROCESSING) {
-        return {
-          status: EnumOpponentStatus.IN_GAME,
-          username: game.players[key].userData.username
+        if (game.status === EnumGameStatus.PROCESSING) {
+          return {
+            status: EnumOpponentStatus.IN_GAME,
+            username: game.players[key].userData.username
+          }
+        }
+
+        if (game.players[key].playground.status === 0) {
+          return {
+            status: EnumOpponentStatus.PREPARATION,
+            username: game.players[key].userData.username
+          };
+        }
+
+        if (game.players[key].playground.status === 1) {
+          return {
+            status: EnumOpponentStatus.PREPARED,
+            username: game.players[key].userData.username
+          };
         }
       }
 
-      if (game.players[key].playground.status === 0) {
-        return {
-          status: EnumOpponentStatus.PREPARATION,
-          username: game.players[key].userData.username
-        };
-      }
-
-      if (game.players[key].playground.status === 1) {
-        return {
-          status: EnumOpponentStatus.PREPARED,
-          username: game.players[key].userData.username
-        };
-      }
+      return { status: EnumOpponentStatus.NOT_CONNECTED, username: "None" };
+    } else {
+      return false;
     }
-
-    return { status: EnumOpponentStatus.NOT_CONNECTED, username: "None" };
   }
   /**
-   * 
+   * Adding a ship to the game
    * @param password 
    * @param token 
    * @param ship 
    * @returns 
    */
   addPlayerShip(data: GameAuthAndPoint) {
-    const game = this.gameProvider.data[data.password];
-    const MAX_SHIPS = 5;
+    if (data.password in this.gameProvider.data) {
+      const game = this.gameProvider.data[data.password];
+      const MAX_SHIPS = 5;
 
-    if (game.status !== EnumGameStatus.PREPARE) return false;
+      if (game.status !== EnumGameStatus.PREPARE) return false;
 
-    if (game.players[data.token].playground.ships.length <= MAX_SHIPS) {
-      game.players[data.token].playground.ships.push({
-        status: 1, x: data.point.x, y: data.point.y
-      });
+      if (game.players[data.token].playground.ships.length <= MAX_SHIPS) {
+        game.players[data.token].playground.ships.push({
+          status: 1, x: data.point.x, y: data.point.y
+        });
+      }
+
+      return true;
+    } else {
+      return false;
     }
-
-    return true;
   }
   /**
-   * 
+   * Setting player status
    * @param password 
    * @param token 
    * @param status 
    */
   setPlayerReady(data: GameAuth) {
-    const game = this.gameProvider.data[data.password];
+    if (data.password in this.gameProvider.data) {
+      const game = this.gameProvider.data[data.password];
 
-    if (game.status !== EnumGameStatus.PREPARE) return;
-    
-    game.players[data.token].playground.status = 1;
+      if (game.status !== EnumGameStatus.PREPARE) return;
+      
+      game.players[data.token].playground.status = 1;
 
-    let preparation = 0;
-    let prepared = 0;
+      let preparation = 0;
+      let prepared = 0;
 
-    for (const authToken in game.players) {
-      if (game.players[authToken].playground.status === 0) {
-        preparation += 1;
+      for (const authToken in game.players) {
+        if (game.players[authToken].playground.status === 0) {
+          preparation += 1;
+        }
+
+        if (game.players[authToken].playground.status === 1) {
+          prepared += 1;
+        }
       }
 
-      if (game.players[authToken].playground.status === 1) {
-        prepared += 1;
+      if (preparation == 2) {
+        game.status = 0;
+      } else {
+        if (prepared == 2) {
+          game.status = 1;
+        }
       }
-    }
-
-    if (preparation == 2) {
-      game.status = 0;
     } else {
-      if (prepared == 2) {
-        game.status = 1;
-      }
+      return false;
     }
   }
   /**
-   * 
+   * Handler for a player's shot on the opponent's field
    * @param password 
    * @param token 
    * @param point 
    * @returns 
    */
   playerShot(data: GameAuthAndPoint) {
-    const game = this.gameProvider.data[data.password];
-    const clients = game.players;
+    if (data.password in this.gameProvider.data) {
+      const game = this.gameProvider.data[data.password];
+      const clients = game.players;
 
-    if (data.token !== clients[Object.keys(clients)[game.turn]].token) return;
+      if (data.token !== clients[Object.keys(clients)[game.turn]].token) return;
 
-    const firstTurnPlayer = clients[Object.keys(clients)[game.turn]];
-    const secondTurnPlayer = clients[
-      game.turn === 0
-      ? Object.keys(clients)[1]
-      : Object.keys(clients)[0]
-    ];
+      const firstTurnPlayer = clients[Object.keys(clients)[game.turn]];
+      const secondTurnPlayer = clients[
+        game.turn === 0
+        ? Object.keys(clients)[1]
+        : Object.keys(clients)[0]
+      ];
 
-    game.turn = game.turn === 0 ? 1 : 0;
-    game.step += 1;
+      game.turn = game.turn === 0 ? 1 : 0;
+      game.step += 1;
 
-    for (let i = 0; i < secondTurnPlayer.playground.ships.length; i++) {
-      const ship = secondTurnPlayer.playground.ships[i];
+      for (let i = 0; i < secondTurnPlayer.playground.ships.length; i++) {
+        const ship = secondTurnPlayer.playground.ships[i];
 
-      if (ship.x === data.point.x && ship.y === data.point.y) {
-        if (ship.status === 1) {
-          firstTurnPlayer.points += 1;
-          secondTurnPlayer.playground.ships[i].status = 0;
-        }
+        if (ship.x === data.point.x && ship.y === data.point.y) {
+          if (ship.status === 1) {
+            firstTurnPlayer.points += 1;
+            secondTurnPlayer.playground.ships[i].status = 0;
+          }
 
-        if (secondTurnPlayer.playground.ships.filter(sh => sh.status === 1).length === 0) {
-          game.status = 2;
+          if (secondTurnPlayer.playground.ships.filter(sh => sh.status === 1).length === 0) {
+            game.status = 2;
+          }
         }
       }
+
+      secondTurnPlayer.playground.missed.push(
+        {
+          x: data.point.x,
+          y: data.point.y
+        }
+      );
+    } else {
+      return false;
     }
-
-    secondTurnPlayer.playground.missed.push(
-      {
-        x: data.point.x,
-        y: data.point.y
-      }
-    );
   }
   /**
-   * 
+   * Saving a message
    * @param data 
    */
   saveMessage(data: { password: string, message: Message}) {
@@ -434,7 +464,7 @@ export class WsGameService {
     chat.push(data.message);
   }
   /**
-   * 
+   * Receiving messages
    * @param password 
    * @returns 
    */
@@ -443,7 +473,7 @@ export class WsGameService {
     return chat;
   }
   /**
-   * 
+   * Getting a player's game history
    * @param gameId 
    */
   async loadPlayerHistory(gameId: number) {
@@ -464,7 +494,7 @@ export class WsGameService {
     }
   }
   /**
-   * 
+   * Get player statistics
    * @param token 
    */
   async loadPlayerStatistic(token: Token) {

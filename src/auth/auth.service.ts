@@ -15,7 +15,7 @@ export class AuthService {
     private jwtService: JwtService
   ) {}
   /**
-   * 
+   * Getting a user through a token
    * @param token 
    * @returns 
    */
@@ -25,10 +25,9 @@ export class AuthService {
     return user;
   }
   /**
-   * 
+   * User Validation
    * @param login 
    * @param pass 
-   * @returns 
    */
   async validateUser(validateData: Validation): Promise<any> {
     const user = await this.usersService.findOne(validateData.login);
@@ -41,7 +40,7 @@ export class AuthService {
     return null;
   }
   /**
-   * 
+   * User authorization
    * @param user 
    * @returns 
    */
@@ -53,7 +52,7 @@ export class AuthService {
     };
   }
   /**
-   * 
+   * User registration
    * @param userData 
    * @returns 
    */
