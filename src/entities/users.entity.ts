@@ -2,7 +2,9 @@ import {
   Entity,
   Column,
   PrimaryGeneratedColumn,
+  OneToMany
 } from "typeorm";
+import { Game } from "./game.entity";
 
 @Entity()
 export class User {
@@ -17,4 +19,10 @@ export class User {
 
   @Column({ nullable: false })
   password: string;
+
+  @OneToMany(() => Game, game => game.winner)
+  wonGames: Game[];
+
+  @OneToMany(() => Game, game => game.loser)
+  loseGames: Game[];
 }

@@ -2,6 +2,7 @@
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
 </p>
 
+
 [circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
 [circleci-url]: https://circleci.com/gh/nestjs/nest
 
@@ -22,15 +23,24 @@
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+# Project "Battleship" - Backend
+### This repository contains the backend part of the "Battleship" project. It is implemented in TypeScript using the Nest.js framework and PostgreSQL as the database.
 
 ## Installation
+
+Make sure you have Node.js installed (version 16 or higher is recommended) and PostgreSQL (version 10 or higher is recommended).
+Clone the repository to your local machine.
+Navigate to the root directory of the project and install the dependencies by running the following command:
 
 ```bash
 $ npm install
 ```
+
+## Database Setup
+
+Create a database named "game" in PostgreSQL.
+Open the src/database.module.ts file and provide the database connection settings (e.g., host, port, username, password, and database name).
+
 
 ## Running the app
 
@@ -45,28 +55,9 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
-## Test
+## Swagger
 
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+The API documentation is available at http://localhost:3006/api. You can use Swagger to explore the available endpoints and their descriptions.
 
 ## License
 

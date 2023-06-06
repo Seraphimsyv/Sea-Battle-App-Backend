@@ -1,13 +1,13 @@
 import { Injectable, Global } from "@nestjs/common";
 import {
-  Message,
-  GameRecord, GameData
-} from './types'
+  ChatRecord,
+  GameRecord
+} from '../types/game.types';
 
 @Global()
 @Injectable()
 export class GlobalChatProvider {
-  public data: Record<string, Message[]> = {};
+  public data: ChatRecord = {};
 }
 
 @Global()

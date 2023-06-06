@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from './database.module';
 import { AuthModule } from './auth/auth.module';
-import { WsGameModule } from './ws-game/ws-game.module';
+import { GameModule } from './game/game.module';
 import { AppService } from './app.service';
 
 
@@ -9,7 +9,7 @@ import { AppService } from './app.service';
   imports: [
     DatabaseModule,
     AuthModule,
-    WsGameModule,
+    GameModule,
   ],
   providers: [
     AppService

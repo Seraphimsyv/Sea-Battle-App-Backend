@@ -3,13 +3,15 @@ import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { User } from 'src/entities/users.entity';
 import {
-  Registration,
-  Validation
-} from './types'
-
+  AuthData,
+  RegisterData
+} from './../types/auth.types';
+import { HttpException } from '@nestjs/common/exceptions';
+import { HttpStatus } from '@nestjs/common/enums';
 
 @Injectable()
 export class AuthService {
+  
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService
@@ -20,24 +22,41 @@ export class AuthService {
    * @returns 
    */
   async getUserFromToken(token: string) {
-    const user = this.jwtService.decode(token);
-    
-    return user;
+    return this.jwtService.decode(token);
   }
   /**
    * User Validation
    * @param login 
    * @param pass 
    */
-  async validateUser(validateData: Validation): Promise<any> {
-    const user = await this.usersService.findOne(validateData.login);
-    if (user && user.password === validateData.password) {
-      const { password, ...result } = user;
-
-      return result;
+  async validateUser(authData: AuthData): Promise<any> {
+    const user = await this.usersService.findOne(authData.login);
+    
+    if (!user) {
+      throw new HttpException(
+        'Sorry, but the user does not exist. Please double-check the entered data or register to create an account.',
+        HttpStatus.UNAUTHORIZED
+      )
     }
 
-    return null;
+    if (user && user.password !== authData.password) {
+      throw new HttpException(
+        'Sorry, but the password entered is incorrect. Please make sure you enter the correct credentials and try again.',
+        HttpStatus.UNAUTHORIZED
+      )
+    }
+
+    if (user && user.password === authData.password) {
+      return {
+        ...user,
+        password: undefined
+      };
+    }
+
+    throw new HttpException(
+      'Sorry, there was an error logging into the website. Please check your credentials and try again.',
+      HttpStatus.NOT_FOUND
+    );
   }
   /**
    * User authorization
@@ -46,17 +65,16 @@ export class AuthService {
    */
   async autorizationUser(user: User) {
     const payload = { login: user.login, id: user.id, username: user.username };
+    const token = this.jwtService.sign(payload);
 
-    return {
-      access_token: this.jwtService.sign(payload)
-    };
+    return { access_token: token };
   }
   /**
    * User registration
-   * @param userData 
+   * @param data 
    * @returns 
    */
-  async registrationUser(userData: Registration) {
-    return this.usersService.createUser(userData);
+  async registrationUser(registerData: RegisterData) {
+    return this.usersService.createUser(registerData);
   }
 }

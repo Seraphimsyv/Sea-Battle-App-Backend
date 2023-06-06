@@ -1,45 +1,54 @@
 import {
   Controller,
+  UseGuards,
   Request,
-  Body,
+  Logger,
   Get,
 } from '@nestjs/common';
-import { UnauthorizedException } from '@nestjs/common';
-import { ApiTags, ApiResponse } from '@nestjs/swagger';
-import { JwtService } from '@nestjs/jwt';
+import {
+  ApiResponse,
+  ApiHeader,
+  ApiParam,
+  ApiTags
+} from '@nestjs/swagger';
+import { JwtAuthenticationGuard } from 'src/guard/jwtAuth.guard';
 import { UsersService } from './users.service';
 
 @Controller('api/account')
 @ApiTags('api/account')
 export class UsersController {
-
+  private readonly logger: Logger = new Logger();
+  
   constructor(
-    private usersService: UsersService,
-    private jwtService: JwtService
+    private usersService: UsersService
   ) {}
   /**
-   * Profile retrieval endpoint
+   * User profile endpoint
    * @param req 
    * @returns 
    */
   @Get('profile')
-  @ApiResponse({
-    status: 200,
-    description: 'Retrieving User Profile Data',
-    type: Object
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized access',
-    type: Object
-  })
+  @UseGuards(JwtAuthenticationGuard)
   async getProfile(@Request() req) {
-    const user = this.jwtService.decode(req.headers.authorization);
-    
-    if(user) {
-      return this.usersService.getProfile(user['login']);
-    } else {
-      throw new UnauthorizedException();
-    }
+    return this.usersService.getProfile(req.user.login);
+  }
+  /**
+   * User statistics game endpoint
+   * @param req 
+   */
+  @Get('statistic')
+  @UseGuards(JwtAuthenticationGuard)
+  async statistic(@Request() req) {
+    return this.usersService.getGamesStatistic(req.user);
+  }
+  /**
+   * User history game endpoint
+   * @param req 
+   * @returns 
+   */
+  @Get('history')
+  @UseGuards(JwtAuthenticationGuard)
+  async history(@Request() req) {
+    return this.usersService.getGamesHistory(req.user);
   }
 }

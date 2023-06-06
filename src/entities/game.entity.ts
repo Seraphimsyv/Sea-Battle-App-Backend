@@ -3,15 +3,15 @@ import {
   Column,
   CreateDateColumn,
   PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn
 } from "typeorm";
+import { User } from "./users.entity";
 
 @Entity()
 export class Game {
   @PrimaryGeneratedColumn()
   id: number;
-
-  @Column({ unique: false })
-  password: string;
 
   @CreateDateColumn()
   createdAt: Date;
@@ -22,18 +22,17 @@ export class Game {
   @Column({ unique: false })
   steps: number;
 
-  @Column({ unique: false })
-  winner: 0 | 1;
+  @ManyToOne(() => User, winner => winner.wonGames)
+  @JoinColumn()
+  winner: User;
 
-  @Column({ nullable: false, unique: false })
-  firstPlayer: number;
+  @Column({ nullable: true })
+  winnerPoints: number;
 
-  @Column({ nullable: false, unique: false })
-  firstPlayerPoints: number;
+  @ManyToOne(() => User, loser => loser.loseGames)
+  @JoinColumn()
+  loser: User;
 
-  @Column({ nullable: false, unique: false })
-  secondPlayer: number;
-
-  @Column({ nullable: false, unique: false })
-  secondPlayerPoints: number;
+  @Column({ nullable: true })
+  loserPoints: number;
 }
