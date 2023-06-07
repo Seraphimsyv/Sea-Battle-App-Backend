@@ -48,7 +48,10 @@ export class GameGateway implements OnGatewayInit {
     console.log('Clinet joined to game: ' + client.id);
     this.gameService.updatePlayerStatusPreparation(payload.gameId, payload.playerId)
     setInterval(() => {
-      client.emit('gameInfo', this.gameService.getGameInfo(payload.gameId))
+      this.gameService.getGameInfo(payload.gameId)
+      .then(res => {
+        client.emit('gameInfo', res)
+      })
     }, 1000)
   }
 

@@ -55,6 +55,8 @@ export type GameData = {
     turn: 0 | 1,
     step: number,
     winner?: number,
+    saved: boolean,
+    createdAt: Date
   }
 }
 

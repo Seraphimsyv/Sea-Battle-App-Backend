@@ -80,7 +80,9 @@ export class GameService {
           password: password
         },
         turn: 0,
-        step: 0
+        step: 0,
+        saved: false,
+        createdAt: new Date()
       }
     }
 
@@ -321,9 +323,31 @@ export class GameService {
    * @param player 
    * @returns 
    */
-  getGameInfo(gameId: string) {
+  async getGameInfo(gameId: string) {
     this.updateGame(gameId);
     const game = this.gameProvider.data[gameId];
+
+    if (!game.info.saved && game.info.status === EnumGameStatus.Finish) {
+      this.gameProvider.data[gameId].info.saved = true;
+      const playersIds = Object.keys(game.players);
+      const winnerId = playersIds[0] === String(game.info.winner)
+        ? Number(playersIds[0])
+        : Number(playersIds[1]);
+      const loserId = playersIds[0] === String(game.info.winner)
+      ? Number(playersIds[1])
+      : Number(playersIds[0]);
+      const savedGame = this.gameRepository.create();
+
+      savedGame.createdAt = game.info.createdAt;
+      savedGame.finishAt = new Date();
+      savedGame.steps = game.info.step;
+      savedGame.winner = await this.userService.getById(winnerId);
+      savedGame.winnerPoints = game.players[winnerId].point;
+      savedGame.loser = await this.userService.getById(loserId);
+      savedGame.loserPoints = game.players[loserId].point;
+      await this.gameRepository.save(savedGame);
+    }
+
     return game;
   }
   /**
