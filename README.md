@@ -23,8 +23,8 @@
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-# Project "Battleship" - Backend
-### This repository contains the backend part of the "Battleship" project. It is implemented in TypeScript using the Nest.js framework and PostgreSQL as the database.
+# Project "Sea Battle" - Backend
+### This repository contains the backend part of the "Sea Battle" project. It is implemented in TypeScript using the Nest.js framework and PostgreSQL as the database.
 
 ## Installation
 
