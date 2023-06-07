@@ -3,11 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Socket } from 'socket.io';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
-import { UsersService } from 'src/users/users.service';
+import { UsersService } from 'src/modules/users/users.service';
 import { Game } from 'src/entities/game.entity';
 import { GlobalChatProvider, GlobalGameProvider } from './game.global';
-import { randomId } from '../utils/randomId.utils';
-import { AuthService } from 'src/auth/auth.service';
+import { randomId } from 'src/utils/randomId.utils';
+import { AuthService } from 'src/modules/auth/auth.service';
 import { User } from 'src/entities/users.entity';
 import { HttpException } from '@nestjs/common/exceptions';
 import { HttpStatus } from '@nestjs/common/enums';
@@ -16,12 +16,13 @@ import {
   EnumPlayerStatus,
   EnumShipStatus,
   EnumGameStatus
-} from '../enum/game.enum';
+} from 'src/enum/game.enum';
 
 import {
   UserData,
   Point,
-  Ship
+  Ship,
+  Message
 } from 'src/types/game.types';
 import { ChatGetMessagesDto, ChatNewMessageDto } from 'src/dto/game.dto';
 
@@ -43,13 +44,15 @@ export class GameService {
     const data = [];
 
     Object.keys(this.gameProvider.data).forEach(gameId => {
-      data.push({
-        id: gameId,
-        name: this.gameProvider.data[gameId].info.name,
-        privacy: this.gameProvider.data[gameId].info.privacy.type,
-        password: this.gameProvider.data[gameId].info.privacy.password,
-        status: this.gameProvider.data[gameId].info.status
-      })
+      if (this.gameProvider.data[gameId].info.status !== EnumGameStatus.Finish) {
+        data.push({
+          id: gameId,
+          name: this.gameProvider.data[gameId].info.name,
+          privacy: this.gameProvider.data[gameId].info.privacy.type,
+          password: this.gameProvider.data[gameId].info.privacy.password,
+          status: this.gameProvider.data[gameId].info.status
+        })
+      }
     })
 
     return {
@@ -142,12 +145,25 @@ export class GameService {
       throw new HttpException('Game does not exists!', HttpStatus.NOT_FOUND);
     }
   }
-
+  /**
+   * 
+   * @param gameId 
+   * @param playerId 
+   * @param location 
+   * @returns 
+   */
   async checkShot(gameId: string, playerId: number, location: Point) {
     const game = this.gameProvider.data[gameId];
     const playersIds = Object.keys(game.players);
     const opponentId = Number(String(playerId) === playersIds[0] ? playersIds[1] : playersIds[0]);
     const ships = game.players[opponentId].playground.ship;
+
+    if (playersIds[game.info.turn] !== String(playerId)) {
+      throw new HttpException('Opponent\'s turn', HttpStatus.FORBIDDEN);
+    } else {
+      this.gameProvider.data[gameId].info.turn = game.info.turn === 0 ? 1 : 0;
+      this.gameProvider.data[gameId].info.step += 1;
+    }
 
     for (let s = 0; s < ships.length; s++) {
       const locations = ships[s].locations;
@@ -164,21 +180,44 @@ export class GameService {
 
           if (locations.length > 0) {
             this.gameProvider
-            .data[gameId]
-            .players[opponentId]
-            .playground.ship[s].status = EnumShipStatus.Damaged;
+              .data[gameId]
+              .players[playerId].point += 1;
+            this.gameProvider
+              .data[gameId]
+              .players[opponentId]
+              .playground.ship[s].status = EnumShipStatus.Damaged;
+            this.gameProvider
+              .data[gameId]
+              .players[opponentId]
+              .playground.destroyed.push(location);
+
             return { 'msg': 'Ship damaged!' };
           } else {
             this.gameProvider
-            .data[gameId]
-            .players[opponentId]
-            .playground.ship[s].status = EnumShipStatus.Destroyed;
+              .data[gameId]
+              .players[playerId].point += 1;
+            this.gameProvider
+              .data[gameId]
+              .players[opponentId]
+              .playground.ship[s].status = EnumShipStatus.Destroyed;
+            this.gameProvider
+              .data[gameId]
+              .players[opponentId]
+              .playground.destroyed.push(location);
+            this.gameProvider
+              .data[gameId]
+              .players[opponentId]
+              .playground.ship.splice(s, 1);
             
             return { 'msg': 'Ship destroyed!' };
           }
         }
       }
     }
+
+    this.gameProvider
+      .data[gameId]
+      .players[opponentId].playground.missed.push(location);
 
     return { 'msg': 'Shot past' }
   }
@@ -223,40 +262,57 @@ export class GameService {
    * @returns 
    */
   updatePlayerStatusReady(gameId: string, playerId: number) {
-    const game = this.gameProvider.data[gameId];    
-    game.players[playerId].status = EnumPlayerStatus.Ready;
-    return { msg: 'Status changed to in game!'};
+    const game = this.gameProvider.data[gameId];
+    
+    if (game.players[playerId].status === EnumPlayerStatus.Preparation) {
+      game.players[playerId].status = EnumPlayerStatus.Ready;
+      return { msg: 'Status changed to in game!'};
+    }
   }
   /**
    * 
    * @param gameId 
    */
   updateGame(gameId: string) {
-    if (gameId in this.gameProvider.data) {
-      const game = this.gameProvider.data[gameId];
+    const game = this.gameProvider.data[gameId];
 
-      if (Object.keys(game.players).length === 2) {
-        if (
-          game.players[Object.keys(game.players)[0]].status === EnumPlayerStatus.Preparation &&
-          game.players[Object.keys(game.players)[1]].status === EnumPlayerStatus.Preparation
-        ) {
-          this.gameProvider.data[gameId].info.status = EnumGameStatus.Preparation;
-        }
-        if (
-          game.players[Object.keys(game.players)[0]].status === EnumPlayerStatus.Ready &&
-          game.players[Object.keys(game.players)[1]].status === EnumPlayerStatus.Ready
-        ) {
-          this.gameProvider.data[gameId].info.status = EnumGameStatus.InGame;
-          game.players[Object.keys(game.players)[0]].status === EnumPlayerStatus.InGame;
-          game.players[Object.keys(game.players)[1]].status === EnumPlayerStatus.InGame;
-        }
-        /**
-         * FINISH CHECK
-         */
-      } else {
-        this.gameProvider.data[gameId].info.status = EnumGameStatus.Waiting;
+    if (Object.keys(game.players).length === 2) {
+      const firstPlayer = Number(Object.keys(game.players)[0]);
+      const secondPlayer = Number(Object.keys(game.players)[1]);
+
+      if (
+        this.gameProvider.data[gameId].players[firstPlayer].status === EnumPlayerStatus.Preparation &&
+        this.gameProvider.data[gameId].players[secondPlayer].status === EnumPlayerStatus.Preparation
+      ) {
+        this.gameProvider.data[gameId].info.status = EnumGameStatus.Preparation;
       }
 
+      if (
+        this.gameProvider.data[gameId].players[firstPlayer].status === EnumPlayerStatus.Ready &&
+        this.gameProvider.data[gameId].players[secondPlayer].status === EnumPlayerStatus.Ready
+      ) {
+        this.gameProvider.data[gameId].info.status = EnumGameStatus.InGame;
+        this.gameProvider.data[gameId].players[firstPlayer].status = EnumPlayerStatus.InGame;
+        this.gameProvider.data[gameId].players[secondPlayer].status = EnumPlayerStatus.InGame;
+      }
+      
+      if (game.info.status === EnumGameStatus.InGame) {
+        if (game.players[firstPlayer].playground.ship.length === 0) {
+          this.gameProvider.data[gameId].info.status = EnumGameStatus.Finish;
+          this.gameProvider.data[gameId].info.winner = secondPlayer;
+          this.gameProvider.data[gameId].players[firstPlayer].status = EnumPlayerStatus.Finish;
+          this.gameProvider.data[gameId].players[secondPlayer].status = EnumPlayerStatus.Finish;
+        }
+
+        if (game.players[secondPlayer].playground.ship.length === 0) {
+          this.gameProvider.data[gameId].info.status = EnumGameStatus.Finish;
+          this.gameProvider.data[gameId].info.winner = firstPlayer;
+          this.gameProvider.data[gameId].players[firstPlayer].status = EnumPlayerStatus.Finish;
+          this.gameProvider.data[gameId].players[secondPlayer].status = EnumPlayerStatus.Finish;
+        }
+      }
+    } else {
+      this.gameProvider.data[gameId].info.status = EnumGameStatus.Waiting;
     }
   }
   /**
@@ -303,32 +359,27 @@ export class GameService {
 
     return { msg: 'True' }
   }
-
-
-
-
-
-
-
-
-
-
   /**
    * 
    * @param gameId 
    * @returns 
    */
   async sendMessage(user: User, { gameId, message }: ChatNewMessageDto) {
-    // const chat = this.chatProvider.data[gameId];
-    // chat.push(data);
+    const data : Message = {
+      username: user.username,
+      message: message
+    }
+    this.chatProvider.data[gameId].push(data);
+
+    return { msg: 'Message send!' };
   }
   /**
    * 
    * @param gameId
    * @returns 
    */
-  async loadMessages(user: User, { gameId }: ChatGetMessagesDto) {
-    // const chat = this.chatProvider.data[gameId];
-    // return chat;
+  loadMessages(gameId: string) {
+    const chat = this.chatProvider.data[gameId];
+    return chat;
   }
 }

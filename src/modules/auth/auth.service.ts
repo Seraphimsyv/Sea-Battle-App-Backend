@@ -5,7 +5,7 @@ import { User } from 'src/entities/users.entity';
 import {
   AuthData,
   RegisterData
-} from './../types/auth.types';
+} from 'src/types/auth.types';
 import { HttpException } from '@nestjs/common/exceptions';
 import { HttpStatus } from '@nestjs/common/enums';
 

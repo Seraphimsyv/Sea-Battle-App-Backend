@@ -8,9 +8,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import {
-  RegisterUserDto
-} from './../dto/auth.dto';
+import { RegisterUserDto } from 'src/dto/auth.dto';
 import { LocalAuthenticationGuard } from 'src/guard/localAuth.guard';
 import { JwtAuthenticationGuard } from 'src/guard/jwtAuth.guard';
 

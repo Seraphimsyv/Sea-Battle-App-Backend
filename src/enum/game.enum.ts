@@ -3,7 +3,7 @@ export enum EnumShipStatus {
 }
 
 export enum EnumPlayerStatus {
-  NotConnect, Preparation, Ready, InGame
+  NotConnect, Preparation, Ready, InGame, Finish
 }
 
 export enum EnumGameStatus {

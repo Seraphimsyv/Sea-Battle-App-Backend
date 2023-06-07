@@ -126,17 +126,4 @@ export class GameController {
   ) {
     return await this.gameService.sendMessage(req.user, chatNewMessageDto);
   }
-  /**
-   * 
-   * @param body 
-   * @returns 
-   */
-  @Get('get-messages')
-  @UseGuards(JwtAuthenticationGuard)
-  async getMessages(
-    @Request() req,
-    @Body() chatGetMesssageDto: ChatGetMessagesDto
-  ) {
-    return await this.gameService.loadMessages(req.user, chatGetMesssageDto);
-  }
 }

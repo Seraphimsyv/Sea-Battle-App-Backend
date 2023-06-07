@@ -2,7 +2,7 @@ import { Injectable, Global } from "@nestjs/common";
 import {
   ChatRecord,
   GameRecord
-} from '../types/game.types';
+} from 'src/types/game.types';
 
 @Global()
 @Injectable()

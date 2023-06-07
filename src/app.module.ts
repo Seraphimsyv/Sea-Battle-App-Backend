@@ -1,8 +1,7 @@
 import { Module } from '@nestjs/common';
-import { DatabaseModule } from './database.module';
-import { AuthModule } from './auth/auth.module';
-import { GameModule } from './game/game.module';
-import { AppService } from './app.service';
+import { DatabaseModule } from './modules/database.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { GameModule } from './modules/game/game.module';
 
 
 @Module({
@@ -10,9 +9,6 @@ import { AppService } from './app.service';
     DatabaseModule,
     AuthModule,
     GameModule,
-  ],
-  providers: [
-    AppService
-  ],
+  ]
 })
 export class AppModule {}
