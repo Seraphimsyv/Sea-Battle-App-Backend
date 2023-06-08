@@ -26,13 +26,13 @@ export class Game {
   @JoinColumn()
   winner: User;
 
-  @Column({ nullable: true })
+  @Column()
   winnerPoints: number;
 
   @ManyToOne(() => User, loser => loser.loseGames)
   @JoinColumn()
   loser: User;
 
-  @Column({ nullable: true })
+  @Column()
   loserPoints: number;
 }
