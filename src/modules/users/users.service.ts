@@ -62,6 +62,13 @@ export class UsersService {
    * @returns 
    */
   async createUser(registerData: RegisterData) {
+
+    const anotherUser = await this.findOne(registerData.login);
+
+    if (anotherUser) {
+      throw new HttpException('ERROR:USER_EXISTS', HttpStatus.BAD_REQUEST);
+    }
+    
     try {
       const newUser = await this.usersRepository.create(registerData);
       await this.usersRepository.save(newUser);
