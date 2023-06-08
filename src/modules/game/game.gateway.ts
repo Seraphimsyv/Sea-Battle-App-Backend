@@ -8,7 +8,6 @@ import { Socket } from 'socket.io';
 import { GameService } from './game.service';
 import { AuthService } from 'src/modules/auth/auth.service';
 import { UsersService } from 'src/modules/users/users.service';
-import { EnumPlayerStatus } from 'src/enum/game.enum';
 
 @WebSocketGateway(
   {
@@ -22,8 +21,6 @@ export class GameGateway implements OnGatewayInit {
 
   constructor(
     private readonly gameService: GameService,
-    private readonly authService: AuthService,
-    private readonly usersService: UsersService
   ) {}
   /**
    * Socket initialization
@@ -39,6 +36,15 @@ export class GameGateway implements OnGatewayInit {
     this.logger.log('Client connected: ' + client.id);
   }
   /**
+   * Client socket disconnect
+   * @param client 
+   */
+  handleDisconnect(client: Socket) {
+    this.logger.log('Client disconected: ' + client.id);
+    this.connectedGameClients.delete(client.id);
+    this.connectedChatClients.delete(client.id);
+  }
+  /**
    * 
    * @param client
    * @param gameId 
@@ -47,19 +53,23 @@ export class GameGateway implements OnGatewayInit {
   handleJoinGame(client: Socket, payload: { gameId: string, playerId: number }) {
     console.log('Clinet joined to game: ' + client.id);
     this.gameService.updatePlayerStatusPreparation(payload.gameId, payload.playerId)
-    setInterval(() => {
+    const interval = setInterval(() => {
       this.gameService.getGameInfo(payload.gameId)
       .then(res => {
         client.emit('gameInfo', res)
       })
-    }, 1000)
+    }, 1000);
+    
+    this.connectedGameClients.set(client.id, interval);
   }
 
   @SubscribeMessage('joinChat')
   handleJoinChat(client: Socket, payload: { gameId: string }) {
     console.log('Client joined to chat: ' + client.id);
-    setInterval(() => {
+    const interval = setInterval(() => {
       client.emit('updateChat', { messages: this.gameService.loadMessages(payload.gameId) });
-    }, 1000)
+    }, 1000);
+    
+    this.connectedChatClients.set(client.id, interval);
   }
 }

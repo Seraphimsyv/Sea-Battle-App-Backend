@@ -11,6 +11,7 @@ async function bootstrap() {
     .setTitle('Sea Battle Game API with NestJS')
     .setDescription('API developed on NestJS')
     .setVersion('1.0')
+    .addTag('api')
     .build();
   
   const document = SwaggerModule.createDocument(app, swaggerConfig);

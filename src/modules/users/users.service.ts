@@ -39,7 +39,7 @@ export class UsersService {
     }
   }
   /**
-   * 
+   * Getting a user in the database by id
    * @param id 
    * @returns 
    */
@@ -96,7 +96,7 @@ export class UsersService {
     }
   }
   /**
-   * 
+   * Getting a user game statistic
    * @param user 
    */
   async getGamesStatistic(user: User) {
@@ -126,7 +126,7 @@ export class UsersService {
     return data;
   }
   /**
-   * 
+   * Getting a user game history
    * @param user 
    */
   async getGamesHistory(user: User) {

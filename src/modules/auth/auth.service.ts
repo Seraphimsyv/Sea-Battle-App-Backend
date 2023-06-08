@@ -55,7 +55,7 @@ export class AuthService {
 
     throw new HttpException(
       'Sorry, there was an error logging into the website. Please check your credentials and try again.',
-      HttpStatus.NOT_FOUND
+      HttpStatus.UNAUTHORIZED
     );
   }
   /**

@@ -6,14 +6,21 @@ import {
   Post,
   Get
 } from '@nestjs/common';
-import { ApiTags, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { 
+  ApiTags, 
+  ApiBody,
+  ApiParam,
+  ApiResponse
+} from '@nestjs/swagger';
+import { HttpException } from '@nestjs/common/exceptions';
+import { User } from 'src/entities/users.entity';
 import { AuthService } from './auth.service';
-import { RegisterUserDto } from 'src/dto/auth.dto';
+import { RegisterUserDto, ResponseLoginDto } from 'src/dto/auth.dto';
 import { LocalAuthenticationGuard } from 'src/guard/localAuth.guard';
 import { JwtAuthenticationGuard } from 'src/guard/jwtAuth.guard';
 
 @Controller('/api/auth')
-@ApiTags('/api/posts')
+@ApiTags('/api/auth')
 export class AuthController {
   
   constructor(
@@ -24,6 +31,16 @@ export class AuthController {
    * @param req 
    */
   @Post('log-in')
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully autorization user!',
+    type: ResponseLoginDto
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Authorisation Error!',
+    type: HttpException
+  })
   @UseGuards(LocalAuthenticationGuard)
   async logIn(@Request() req) {
     return this.authService.autorizationUser(req.user);
@@ -33,17 +50,18 @@ export class AuthController {
    * @param registerData 
    */
   @Post('sign-in')
+  @ApiBody({ type: RegisterUserDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully registration user!',
+    type: Promise<User>
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Registration Error!',
+    type: HttpException
+  })
   async signIn(@Body() registerUserDto: RegisterUserDto ) {
     return this.authService.registrationUser(registerUserDto);
-  }
-  /**
-   * 
-   * @param req 
-   * @returns 
-   */
-  @Get('refresh-token')
-  @UseGuards(JwtAuthenticationGuard)
-  async updateToken(@Request() req) {
-    return this.authService.autorizationUser(req.user);
   }
 }

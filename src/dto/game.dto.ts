@@ -66,3 +66,45 @@ export class ChatNewMessageDto extends GameDto {
   @IsString()
   message: string;
 }
+
+type Game = {
+  id: string,
+  name: string,
+  privacy: boolean,
+  password: string | undefined,
+  status: number
+}
+
+type GameList = Game[];
+
+export class ResponseGameListDto {
+  games: GameList;
+}
+
+export class ResponseGameCreateDto {
+  gameId: string;
+}
+
+export class ResponseGameConnectDto {
+  msg: boolean;
+}
+
+export class ResponseGameCheckDto {
+  msg: boolean;
+}
+
+export class ResponseGamePlayerStatusDto {
+  msg: string;
+}
+
+export class ResponseGamePlayerUploadDto {
+  msg: string;
+}
+
+export class ResponseGamePlayerShotDto {
+  msg: string;
+}
+
+export class ResponseChatSendingDto {
+  msg: string;
+}

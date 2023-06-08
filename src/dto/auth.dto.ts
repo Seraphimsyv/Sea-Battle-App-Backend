@@ -23,3 +23,7 @@ export class RegisterUserDto {
   @IsNotEmpty()
   password: string;
 }
+
+export class ResponseLoginDto {
+  access_token: string
+}
